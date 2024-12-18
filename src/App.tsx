@@ -10,15 +10,14 @@ import { Todo } from './types/Todo';
 import classNames from 'classnames';
 import { Footer } from './components/Footer/Footer';
 import { TodoList } from './components/TodoList/TodoList';
+import { ErrorObject, FilterEnum } from './utils/types';
 
 export const App: React.FC = () => {
 
-  type Filters = 'All' | 'Active' | 'Completed';
-  type ErrorObject = '' | 'Load' | 'Add' | 'Title' | 'Delete';
   const inputRef = useRef<HTMLInputElement>(null);
   const [todosData, setTodosData] = React.useState<Todo[]>([]);
   const [error, setError] = React.useState<ErrorObject>('');
-  const [filter, setFilter] = React.useState<Filters>('All');
+  const [filter, setFilter] = React.useState<FilterEnum>(FilterEnum.All);
   const [title, setTitle] = React.useState('');
   const [tempTodo, setTempTodo] = React.useState<Todo | null>(null);
   const [deletingTodo, setDeletingTodo] = React.useState<number | null>(null);

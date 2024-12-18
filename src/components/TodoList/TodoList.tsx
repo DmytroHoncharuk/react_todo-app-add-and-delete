@@ -1,6 +1,7 @@
 import React from 'react';
 import { Todo } from '../../types/Todo';
 import { TodoItem } from '../TodoItem/TodoItem';
+import { TempTodoItem } from '../TempTodoItem/TempTodoItem';
 
 type Props = {
   filteredTodos: Todo[];
@@ -26,11 +27,7 @@ export const TodoList: React.FC<Props> = ({
         />
       ))}
 
-      <TodoItem
-        todo={tempTodo}
-        onDelete={onDelete}
-        isDeleting={deletingTodoId === tempTodo?.id}
-      />
+      <TempTodoItem tempTodo={tempTodo} />
     </>
   );
 };

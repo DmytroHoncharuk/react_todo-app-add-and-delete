@@ -1,11 +1,12 @@
 import { Todo } from '../../types/Todo';
 import classNames from 'classnames';
 import React from 'react';
+import { FilterEnum } from '../../utils/types';
 
 type Props = {
   todosData: Todo[];
-  filter: 'All' | 'Active' | 'Completed';
-  setFilter: (filter: 'All' | 'Active' | 'Completed') => void;
+  filter: FilterEnum;
+  setFilter: (filter: FilterEnum) => void;
   onClearClick: () => void;
   isDeleting: boolean;
 };
@@ -28,38 +29,19 @@ export const Footer: React.FC<Props> = ({
 
           {/* Active link should have the 'selected' class */}
           <nav className="filter" data-cy="Filter">
-            <a
-              href="#/"
-              className={classNames('filter__link', {
-                selected: filter === 'All',
-              })}
-              data-cy="FilterLinkAll"
-              onClick={() => setFilter('All')}
-            >
-              All
-            </a>
-
-            <a
-              href="#/active"
-              className={classNames('filter__link', {
-                selected: filter === 'Active',
-              })}
-              data-cy="FilterLinkActive"
-              onClick={() => setFilter('Active')}
-            >
-              Active
-            </a>
-
-            <a
-              href="#/completed"
-              className={classNames('filter__link', {
-                selected: filter === 'Completed',
-              })}
-              data-cy="FilterLinkCompleted"
-              onClick={() => setFilter('Completed')}
-            >
-              Completed
-            </a>
+            {Object.values(FilterEnum).map(filterValue => (
+              <a
+                key={filterValue}
+                href={`#/${filterValue.toLowerCase()}`}
+                className={classNames('filter__link', {
+                  selected: filter === filterValue,
+                })}
+                data-cy={`FilterLink${filterValue}`}
+                onClick={() => setFilter(filterValue)}
+              >
+                {filterValue}
+              </a>
+            ))}
           </nav>
 
           {/* this button should be disabled if there are no completed todos */}
