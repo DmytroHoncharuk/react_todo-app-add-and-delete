@@ -1,13 +1,22 @@
 import { Todo } from '../../types/Todo';
 import classNames from 'classnames';
+import React from 'react';
 
 type Props = {
   todosData: Todo[];
   filter: 'All' | 'Active' | 'Completed';
   setFilter: (filter: 'All' | 'Active' | 'Completed') => void;
+  onClearClick: () => void;
+  isDeleting: boolean;
 };
 
-export const Footer: React.FC<Props> = ({ todosData, filter, setFilter }) => {
+export const Footer: React.FC<Props> = ({
+  todosData,
+  filter,
+  setFilter,
+  onClearClick,
+  isDeleting,
+}) => {
   return (
     <>
       {/* Hide the footer if there are no todos */}
@@ -54,10 +63,16 @@ export const Footer: React.FC<Props> = ({ todosData, filter, setFilter }) => {
           </nav>
 
           {/* this button should be disabled if there are no completed todos */}
+
           <button
             type="button"
             className="todoapp__clear-completed"
             data-cy="ClearCompletedButton"
+            onClick={onClearClick}
+            disabled={
+              todosData.filter(todo => todo.completed).length === 0 ||
+              isDeleting
+            }
           >
             Clear completed
           </button>

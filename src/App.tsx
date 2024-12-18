@@ -4,33 +4,25 @@
 
 import React, { useEffect, useRef } from 'react';
 import { UserWarning } from './UserWarning';
-import { addTodo, USER_ID } from './api/todos';
+import { addTodo, deleteTodo, USER_ID } from './api/todos';
 import { getTodos } from './api/todos';
 import { Todo } from './types/Todo';
 import classNames from 'classnames';
-// @ts-ignore
-import load = Simulate.load;
-// @ts-ignore
-import clean = Mocha.utils.clean;
-// @ts-ignore
-import * as timers from 'node:timers';
 import { Footer } from './components/Footer/Footer';
 import { TodoList } from './components/TodoList/TodoList';
-import { Simulate } from 'react-dom/test-utils';
-// @ts-ignore
-import input = Simulate.input;
 
 export const App: React.FC = () => {
 
   type Filters = 'All' | 'Active' | 'Completed';
-  type ErrorObject = '' | 'Load' | 'Add' | 'Title';
+  type ErrorObject = '' | 'Load' | 'Add' | 'Title' | 'Delete';
   const inputRef = useRef<HTMLInputElement>(null);
   const [todosData, setTodosData] = React.useState<Todo[]>([]);
   const [error, setError] = React.useState<ErrorObject>('');
   const [filter, setFilter] = React.useState<Filters>('All');
   const [title, setTitle] = React.useState('');
   const [tempTodo, setTempTodo] = React.useState<Todo | null>(null);
-
+  const [deletingTodo, setDeletingTodo] = React.useState<number | null>(null);
+  const [isDeletingCompleted, setIsDeletingCompleted] = React.useState(false);
   if (!USER_ID) {
     return <UserWarning />;
   }
@@ -38,7 +30,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+
   useEffect(() => {
     const fetchTodos = async () => {
       try {
@@ -66,7 +58,7 @@ export const App: React.FC = () => {
         return true;
     }
   });
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+
   useEffect(() => {
     if (!error) {
       return;
@@ -77,37 +69,81 @@ export const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, [error]);
 
+  useEffect(() => {
+    if (!tempTodo && !isDeletingCompleted && !deletingTodo) {
+      inputRef.current?.focus();
+    }
+  }, [tempTodo, isDeletingCompleted, deletingTodo]);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if(!title.trim()) {
-      setError('Title')
+      setError('Title');
       return;
     }
 
     const newTempTodo = {
-      id: 0, // тимчасовий id
+      id: 0,
       title: title.trim(),
       completed: false,
       userId: USER_ID,
     };
 
-    setTempTodo(newTempTodo)
+    setTempTodo(newTempTodo);
 
     try {
-     const newTodo = await addTodo({title: title.trim(), completed: false});
-     setTodosData((prevTodos)=>[...prevTodos, newTodo])
-      setTitle('')
+      const newTodo = await addTodo({title: title.trim(), completed: false});
+      setTodosData((prevTodos)=>[...prevTodos, newTodo]);
+      setTitle('');
     } catch (err) {
-      setError('Add')
+      setError('Add');
     } finally {
-      setTempTodo(null)
-
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 0);
+      setTempTodo(null);
     }
-  }
+  };
+
+  const handleDeleteOneTodo = async (id:number) => {
+
+    setDeletingTodo(id);
+
+    try {
+      await deleteTodo(id);
+      setTodosData((prevState)=>prevState.filter((todo) => todo.id !== id));
+    } catch (err) {
+      setError('Delete');
+    } finally {
+      setDeletingTodo(null);
+    }
+  };
+
+
+  const handleDeleteCompletedTodos = async () => {
+    const completedTodos = todosData.filter(todo => todo.completed);
+    const remainingTodos = [...todosData];
+
+    setIsDeletingCompleted(true);
+
+    await Promise.all(
+      completedTodos.map(async todo => {
+        try {
+          await deleteTodo(todo.id);
+          const index = remainingTodos.findIndex(t => t.id === todo.id);
+          if (index !== -1) {
+            remainingTodos.splice(index, 1);
+          }
+        } catch {
+               setError('Delete');
+        }
+        finally {
+          setIsDeletingCompleted(false);
+
+        }
+      })
+    );
+
+    setTodosData(remainingTodos);
+  };
 
   return (
     <div className="todoapp">
@@ -138,7 +174,7 @@ export const App: React.FC = () => {
         </header>
 
         <section className="todoapp__main" data-cy="TodoList">
-          <TodoList filteredTodos={filteredTodos} tempTodo={tempTodo}/>
+          <TodoList filteredTodos={filteredTodos} tempTodo={tempTodo} onDelete={handleDeleteOneTodo} deletingTodoId={deletingTodo}/>
         </section>
         {/*
 
@@ -195,7 +231,7 @@ export const App: React.FC = () => {
           </div>
           */}
 
-        <Footer todosData={todosData} filter={filter} setFilter={setFilter}/>
+        <Footer todosData={todosData} filter={filter} setFilter={setFilter} onClearClick={handleDeleteCompletedTodos} isDeleting={isDeletingCompleted}/>
       </div>
 
       {/* DON'T use conditional rendering to hide the notification */}
@@ -218,11 +254,10 @@ export const App: React.FC = () => {
         {/* show only one message at a time */}
         {error === 'Load' && 'Unable to load todos'}
         {error === 'Add' && 'Unable to add a todo'}
-        {error === 'Title' && 'Title should not be empty\n'}
+        {error === 'Title' && 'Title should not be empty'}
+        {error === 'Delete' && 'Unable to delete a todo'}
 
         {/*
-        Unable to delete a todo
-        <br />
         Unable to update a todo*/}
       </div>
     </div>
